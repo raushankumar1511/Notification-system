@@ -15,7 +15,9 @@ services:
     buildCommand: >-
       pip install -r requirements.txt &&
       python manage.py collectstatic --noinput &&
-      python manage.py migrate
+      python manage.py migrate &&
+      python manage.py seed_triggers &&
+      python manage.py ensure_superuser
     startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
     healthCheckPath: /health/
     envVars:
@@ -31,6 +33,14 @@ services:
         value: "True"
       - key: SCHEDULED_RUN_SECRET
         generateValue: true
+      # Admin bootstrap — the build runs `ensure_superuser` from these (idempotent).
+      # Set them in the dashboard; the admin is created on the next deploy.
+      - key: DJANGO_SUPERUSER_EMAIL
+        sync: false
+      - key: DJANGO_SUPERUSER_USERNAME
+        sync: false
+      - key: DJANGO_SUPERUSER_PASSWORD
+        sync: false
       # Set these in the Render dashboard (sync:false = not stored in the blueprint):
       - key: ALLOWED_HOSTS          # e.g. notif-backend.onrender.com
         sync: false

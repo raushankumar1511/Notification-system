@@ -16,11 +16,18 @@ enabled channel sends its rendered template to the user.
 - Walkthrough video: _add link_
 
 ## Admin login
-1. Create an admin user on the backend: `python manage.py createsuperuser`
-   (username, email, password). Any user with `is_staff=True` can reach the admin panel.
-2. Log in on the frontend at `/login` with that email + password. Staff users land on
-   `/admin`.
-3. The Django admin fallback UI is also available at `<backend>/admin/`.
+- **Local:** create an admin with `python manage.py createsuperuser`, or set the
+  `DJANGO_SUPERUSER_*` vars in `.env` and run `python manage.py ensure_superuser`.
+- **Deployed (Render, no shell):** the deploy build auto-runs `seed_triggers` (creates
+  the 6 triggers) and `ensure_superuser` (creates the admin from the `DJANGO_SUPERUSER_EMAIL`,
+  `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD` env vars). Both are idempotent.
+- Log in on the frontend at `/login` with that email + password — staff users land on
+  `/admin`. Any user with `is_staff=True` can reach the admin panel. The Django admin
+  fallback UI is at `<backend>/admin/`.
+
+> On the free Render tier there is no Shell, so seeding + admin creation happen
+> automatically during the build. Set the `DJANGO_SUPERUSER_*` env vars in the Render
+> dashboard; if you set them after the first deploy, trigger one more deploy.
 
 ## Triggers built (seeded by `python manage.py seed_triggers`)
 | Trigger | Type | Fires when |
@@ -60,6 +67,7 @@ instead of crashing. Add keys to actually deliver messages.
 ## Environment variables
 **Backend** (`backend/.env`, see `backend/.env.example`): `SECRET_KEY`, `DEBUG`,
 `ALLOWED_HOSTS`, `DATABASE_URL`, `CORS_ALLOWED_ORIGINS`, `SCHEDULED_RUN_SECRET`,
+`DJANGO_SUPERUSER_EMAIL`, `DJANGO_SUPERUSER_USERNAME`, `DJANGO_SUPERUSER_PASSWORD`,
 `WHATSAPP_ACCESS_TOKEN`, `PHONE_NUMBER_ID`, `WHATSAPP_API_VERSION`, `RESEND_API_KEY`,
 `RESEND_FROM_EMAIL`, `ONESIGNAL_APP_ID`, `ONESIGNAL_REST_API_KEY`.
 
