@@ -5,7 +5,12 @@ import { useEffect, useState } from "react";
 import Nav from "@/components/Nav";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { initOneSignal, subscribeWebPush, isPushSupported } from "@/lib/onesignal";
+import {
+  initOneSignal,
+  subscribeWebPush,
+  isPushSupported,
+  isConfigured,
+} from "@/lib/onesignal";
 import { CHANNEL_LABELS, type Channel } from "@/lib/types";
 
 type FireResult = { channel: string; status: string; error: string };
@@ -51,12 +56,26 @@ export default function DashboardPage() {
   }
 
   async function enablePush() {
+    if (!isConfigured()) {
+      setPushMsg(
+        "Web push isn't configured on this deployment (NEXT_PUBLIC_ONESIGNAL_APP_ID is missing). Set it in Vercel and redeploy.",
+      );
+      return;
+    }
     setPushMsg("Requesting permission…");
     try {
-      await subscribeWebPush();
-      setPushMsg("Subscribed. Web Push sends will now arrive in this browser.");
-    } catch {
-      setPushMsg("Could not subscribe — check browser permissions / OneSignal config.");
+      const granted = await subscribeWebPush();
+      setPushMsg(
+        granted
+          ? "Subscribed! Web Push sends will now arrive in this browser."
+          : "Permission was not granted. Allow notifications for this site in your browser, then try again.",
+      );
+    } catch (err) {
+      setPushMsg(
+        err instanceof Error
+          ? err.message
+          : "Could not subscribe — check browser permissions / OneSignal config.",
+      );
     }
   }
 
