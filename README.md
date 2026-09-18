@@ -80,6 +80,12 @@ Step-by-step for Meta WhatsApp, Resend, and OneSignal: **`backend/docs/PROVIDERS
 > test sends start failing. WhatsApp business-initiated messages require a
 > **Meta-approved template** (e.g. `hello_world`), not free text.
 
+> **Email note:** this project uses Resend's shared sender (`onboarding@resend.dev`),
+> which — without a verified domain — only delivers to the project owner's own Resend
+> inbox. That is sufficient for the assignment's "test to your email" task and is shown
+> in the walkthrough video. To email arbitrary recipients, verify a domain in Resend (or
+> switch to a single-sender provider like Brevo) and update `RESEND_FROM_EMAIL`.
+
 ## Deploy
 - Backend → Render: **`backend/docs/DEPLOY_RENDER.md`** (uses `render.yaml`).
 - Frontend → Vercel: **`frontend/docs/DEPLOY_VERCEL.md`** (root directory = `frontend`).
