@@ -148,13 +148,19 @@ SIMPLE_JWT = {
 
 # --- CORS ------------------------------------------------------------------
 # Exact origins for the deployed frontend, e.g. "https://myapp.vercel.app".
-CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://127.0.0.1:3000",
-)
+# Trailing slashes are stripped so a value like "https://app.vercel.app/" still works
+# (django-cors-headers rejects origins that include a path).
+CORS_ALLOWED_ORIGINS = [
+    o.rstrip("/")
+    for o in env_list(
+        "CORS_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000"
+    )
+]
 # Vercel preview deploys get unique subdomains; allow them via regex if configured.
 CORS_ALLOWED_ORIGIN_REGEXES = env_list("CORS_ALLOWED_ORIGIN_REGEXES", "")
-CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "") or CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = [
+    o.rstrip("/") for o in env_list("CSRF_TRUSTED_ORIGINS", "")
+] or CORS_ALLOWED_ORIGINS
 
 # --- Security (production) --------------------------------------------------
 if not DEBUG:
