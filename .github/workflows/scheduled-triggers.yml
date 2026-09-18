@@ -1,0 +1,30 @@
+name: Run scheduled triggers
+
+# Evaluates SCHEDULED triggers ("not logged in for N days") on a free schedule.
+# Render's own cron jobs are paid and free web services spin down, so we drive the
+# work from GitHub Actions. The ping also keeps the Render service warm.
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly (UTC)
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST to the scheduled-run endpoint
+        env:
+          BACKEND_URL: ${{ vars.BACKEND_URL }}
+          SCHEDULED_RUN_SECRET: ${{ secrets.SCHEDULED_RUN_SECRET }}
+        run: |
+          if [ -z "$BACKEND_URL" ] || [ -z "$SCHEDULED_RUN_SECRET" ]; then
+            echo "Set the BACKEND_URL repo variable and SCHEDULED_RUN_SECRET repo secret." >&2
+            exit 1
+          fi
+          code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
+            -X POST "$BACKEND_URL/api/internal/run-scheduled/" \
+            -H "X-Scheduled-Secret: $SCHEDULED_RUN_SECRET")
+          echo "HTTP $code"
+          cat /tmp/resp.json
+          test "$code" = "200"

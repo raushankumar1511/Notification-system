@@ -1,0 +1,23 @@
+# Local development database only. Production uses Render's managed Postgres.
+# Host port 5433 is used because 5432 is often already taken by another Postgres.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: notif_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: notif
+      POSTGRES_PASSWORD: notif
+      POSTGRES_DB: notifications
+    ports:
+      - "5433:5432"
+    volumes:
+      - notif_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notif -d notifications"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  notif_pgdata:

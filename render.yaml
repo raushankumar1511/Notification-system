@@ -1,0 +1,52 @@
+# Render Blueprint for the backend (Django). Deploy via Render > Blueprints > New.
+# The frontend deploys separately on Vercel (see frontend/docs/DEPLOY_VERCEL.md).
+databases:
+  - name: notif-db
+    plan: free
+    databaseName: notifications
+    user: notif
+
+services:
+  - type: web
+    name: notif-backend
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT
+    healthCheckPath: /health/
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: notif-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DB_SSL_REQUIRE
+        value: "True"
+      - key: SCHEDULED_RUN_SECRET
+        generateValue: true
+      # Set these in the Render dashboard (sync:false = not stored in the blueprint):
+      - key: ALLOWED_HOSTS          # e.g. notif-backend.onrender.com
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS   # e.g. https://your-frontend.vercel.app
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: PHONE_NUMBER_ID
+        sync: false
+      - key: WHATSAPP_API_VERSION
+        value: v21.0
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: ONESIGNAL_APP_ID
+        sync: false
+      - key: ONESIGNAL_REST_API_KEY
+        sync: false
