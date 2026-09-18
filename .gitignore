@@ -31,3 +31,6 @@ yarn-error.log*
 
 # ---- Misc ----
 *.log
+
+# Local-only notes (never commit)
+WALKTHROUGH_GUIDE.md

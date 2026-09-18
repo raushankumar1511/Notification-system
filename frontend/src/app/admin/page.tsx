@@ -222,6 +222,7 @@ function Cell({
   onToggle: () => void;
   onTested: () => void;
 }) {
+  const { user } = useAuth();
   const [testMsg, setTestMsg] = useState("");
   const [testing, setTesting] = useState(false);
 
@@ -237,15 +238,18 @@ function Cell({
   }
 
   async function test() {
-    const recipient = window.prompt(
+    const myId = user ? String(user.id) : "";
+    let recipient = window.prompt(
       channel === "email"
         ? "Send test email to which address?"
         : channel === "whatsapp"
           ? "Send test WhatsApp to which number? (e.g. +15551234567)"
-          : "Web push targets your own subscription. Leave blank and press OK.",
-      "",
+          : "Web push target (your OneSignal external id). Defaults to your own account — subscribe this browser first via the dashboard.",
+      channel === "webpush" ? myId : "",
     );
     if (recipient === null) return;
+    // For web push, an empty value means "send to my own subscription".
+    if (channel === "webpush" && !recipient.trim()) recipient = myId;
     setTesting(true);
     setTestMsg("");
     try {
