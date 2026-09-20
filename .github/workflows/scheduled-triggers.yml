@@ -6,7 +6,7 @@ name: Run scheduled triggers
 
 on:
   schedule:
-    - cron: "0 * * * *" # hourly (UTC)
+    - cron: "0 */6 * * *" # every 6 hours (UTC) — enough for day/week inactivity windows
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 jobs:
@@ -18,13 +18,17 @@ jobs:
           BACKEND_URL: ${{ vars.BACKEND_URL }}
           SCHEDULED_RUN_SECRET: ${{ secrets.SCHEDULED_RUN_SECRET }}
         run: |
+          # Skip (don't fail) until the repo variable/secret are configured, so this
+          # workflow doesn't send failure emails when scheduled triggers aren't wired up.
           if [ -z "$BACKEND_URL" ] || [ -z "$SCHEDULED_RUN_SECRET" ]; then
-            echo "Set the BACKEND_URL repo variable and SCHEDULED_RUN_SECRET repo secret." >&2
-            exit 1
+            echo "BACKEND_URL / SCHEDULED_RUN_SECRET not set — skipping."
+            echo "To enable: add repo Variable BACKEND_URL and Secret SCHEDULED_RUN_SECRET"
+            echo "(Settings > Secrets and variables > Actions). See backend/docs/DEPLOY_RENDER.md."
+            exit 0
           fi
           code=$(curl -s -o /tmp/resp.json -w "%{http_code}" \
             -X POST "$BACKEND_URL/api/internal/run-scheduled/" \
             -H "X-Scheduled-Secret: $SCHEDULED_RUN_SECRET")
           echo "HTTP $code"
-          cat /tmp/resp.json
+          cat /tmp/resp.json || true
           test "$code" = "200"
