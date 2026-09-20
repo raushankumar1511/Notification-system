@@ -6,6 +6,7 @@ Content is plain text, so ``{{var}}`` rendering (done by the caller) works fully
 """
 
 import logging
+import uuid
 
 import requests
 from django.conf import settings
@@ -33,6 +34,9 @@ def send_webpush(
         "target_channel": "push",
         "headings": {"en": title or "Notification"},
         "contents": {"en": body or ""},
+        # Unique topic per send so browsers never silently collapse/replace an
+        # identical notification — each one shows as a fresh banner.
+        "web_push_topic": uuid.uuid4().hex,
     }
     if url:
         payload["url"] = url
