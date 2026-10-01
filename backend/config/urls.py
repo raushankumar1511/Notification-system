@@ -6,11 +6,11 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from accounts.views import LoginView, LogoutView, MeView, RegisterView
 from notifications.views import (
+    FireEventView,
     NotificationLogViewSet,
     RunScheduledView,
     TemplateViewSet,
     TriggerViewSet,
-    fire_event,
 )
 
 router = DefaultRouter()
@@ -31,7 +31,7 @@ api_patterns = [
     path("auth/logout/", LogoutView.as_view(), name="logout"),
     path("auth/me/", MeView.as_view(), name="me"),
     # Events + scheduled runner
-    path("events/<slug:slug>/", fire_event, name="fire_event"),
+    path("events/<slug:slug>/", FireEventView.as_view(), name="fire_event"),
     path("internal/run-scheduled/", RunScheduledView.as_view(), name="run_scheduled"),
     # Router: triggers, templates, logs
     *router.urls,

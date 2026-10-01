@@ -1,7 +1,7 @@
 from unittest import mock
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework.test import APIClient
 
 from notifications.models import Channel, Template, Trigger
@@ -146,6 +146,24 @@ class ApiAuthTests(TestCase):
         self.assertEqual(resp.status_code, 204)
         self.assertFalse(Trigger.objects.filter(id=self.trigger.id).exists())
 
+    def test_fire_event_endpoint(self):
+        token = self._token("joe@example.com", "pw123456").data["access"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        with mock.patch.object(
+            send_mod.email_client, "send_email", return_value=SendResult.sent("mid")
+        ) as m_email:
+            resp = self.client.post(
+                "/api/events/login/", {"context": {"name": "Joe"}}, format="json"
+            )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["trigger"], "login")
+        self.assertIn("email", [s["channel"] for s in resp.data["sent"]])
+        m_email.assert_called()
+
+    def test_fire_event_requires_auth(self):
+        resp = self.client.post("/api/events/login/", {}, format="json")
+        self.assertEqual(resp.status_code, 401)
+
     def test_test_send_uses_pipeline(self):
         token = self._token("admin@example.com", "pw123456").data["access"]
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
@@ -161,6 +179,7 @@ class ApiAuthTests(TestCase):
         m_email.assert_called_once()
 
 
+@override_settings(SCHEDULED_RUN_SECRET="test-secret")
 class RunScheduledEndpointTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -169,10 +188,17 @@ class RunScheduledEndpointTests(TestCase):
         resp = self.client.post("/api/internal/run-scheduled/")
         self.assertEqual(resp.status_code, 403)
 
+    def test_wrong_secret_forbidden(self):
+        resp = self.client.post(
+            "/api/internal/run-scheduled/",
+            **{"HTTP_X_SCHEDULED_SECRET": "nope"},
+        )
+        self.assertEqual(resp.status_code, 403)
+
     def test_runs_with_secret(self):
         resp = self.client.post(
             "/api/internal/run-scheduled/",
-            **{"HTTP_X_SCHEDULED_SECRET": "dev-scheduled-secret"},
+            **{"HTTP_X_SCHEDULED_SECRET": "test-secret"},
         )
         self.assertEqual(resp.status_code, 200)
         self.assertIn("total_users_notified", resp.data)

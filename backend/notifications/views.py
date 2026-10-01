@@ -2,7 +2,7 @@ import logging
 
 from django.conf import settings
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -73,22 +73,29 @@ class NotificationLogViewSet(viewsets.ReadOnlyModelViewSet):
         return qs[:200]
 
 
-@api_view(["POST"])
-@permission_classes([permissions.IsAuthenticated])
-def fire_event(request, slug: str):
-    """Fire an EVENT trigger for the current user (e.g. order_placed, password_reset)."""
-    context = request.data.get("context", {}) if isinstance(request.data, dict) else {}
-    context.setdefault("name", request.user.username or request.user.email)
-    logs = fire_trigger(slug, request.user, context)
-    return Response(
-        {
-            "trigger": slug,
-            "sent": [
-                {"channel": log.channel, "status": log.status, "error": log.error}
-                for log in logs
-            ],
-        }
-    )
+class FireEventView(APIView):
+    """Fire an EVENT trigger for the current user (e.g. order_placed, password_reset).
+
+    Generic entry point so the frontend can signal any site event by its trigger slug;
+    enabled channels for that trigger are then dispatched via the firing engine.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, slug: str):
+        data = request.data if isinstance(request.data, dict) else {}
+        context = data.get("context", {}) or {}
+        context.setdefault("name", request.user.username or request.user.email)
+        logs = fire_trigger(slug, request.user, context)
+        return Response(
+            {
+                "trigger": slug,
+                "sent": [
+                    {"channel": log.channel, "status": log.status, "error": log.error}
+                    for log in logs
+                ],
+            }
+        )
 
 
 class RunScheduledView(APIView):
